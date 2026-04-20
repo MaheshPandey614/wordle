@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wordle</title>
+<title>Wordle Today</title>
 
 <style>
 :root {
@@ -22,14 +22,33 @@ body {
   text-align: center;
 }
 
-#board { margin-top: 20px; display: grid; gap: 5px; justify-content: center; }
-.row { display: grid; gap: 5px; }
+/* GAME LAYOUT */
+#gameContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#board {
+  margin-top: 20px;
+  display: grid;
+  gap: 5px;
+}
+
+.row {
+  display: grid;
+  gap: 5px;
+}
 
 .tile {
-  width: 50px; height: 50px;
+  width: 50px;
+  height: 50px;
   border: 2px solid #3a3a3c;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
 }
 
 .correct { background: var(--green); }
@@ -38,6 +57,7 @@ body {
 
 #keyboard { margin-top: 20px; }
 .key-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
+
 .key {
   padding: 10px;
   border: none;
@@ -47,36 +67,22 @@ body {
 }
 .wide { width: 60px; }
 
-/* Animations */
-@keyframes flip {
-  0% { transform: rotateX(0); }
-  50% { transform: rotateX(90deg); }
-  100% { transform: rotateX(0); }
-}
-.tile.flip { animation: flip 0.5s; }
-
-@keyframes pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
-.tile.pop { animation: pop 0.2s; }
-
-@keyframes shake {
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  50% { transform: translateX(5px); }
-  75% { transform: translateX(-5px); }
-}
-.row.shake { animation: shake 0.3s; }
-
+/* SHARE BUTTON */
 #shareBtn {
   margin-top: 15px;
-  padding: 10px;
-  background: green;
+  padding: 10px 20px;
+  background: #6aaa64;
   color: white;
   border: none;
+  border-radius: 5px;
   display: none;
+  cursor: pointer;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
 
@@ -85,9 +91,13 @@ body {
 <body>
 
 <h1>WORDLE</h1>
-<div id="board"></div>
+
+<div id="gameContainer">
+  <div id="board"></div>
+  <button id="shareBtn" onclick="shareResult()">📤 Share Result</button>
+</div>
+
 <div id="keyboard"></div>
-<button id="shareBtn" onclick="shareResult()">📤 Share Result</button>
 
 <script>
 // ===== LOAD WORD LIST =====
@@ -107,7 +117,7 @@ let word = "";
 try {
   word = atob(encoded).toLowerCase();
 } catch {
-  word = "apple"; // fallback
+  word = "apple";
 }
 
 const rows = 6;
@@ -116,6 +126,7 @@ const cols = word.length;
 let currentRow = 0;
 let currentGuess = "";
 let results = [];
+let gameWon = false;
 
 const board = document.getElementById("board");
 board.style.gridTemplateRows = `repeat(${rows}, auto)`;
@@ -178,18 +189,12 @@ function handleKey(key){
   updateBoard();
 }
 
-// ===== UPDATE BOARD =====
 function updateBoard(){
   const row=board.children[currentRow];
 
   for(let i=0;i<cols;i++){
     const tile=row.children[i];
     tile.textContent=currentGuess[i]||"";
-
-    if(currentGuess[i]){
-      tile.classList.add("pop");
-      setTimeout(()=>tile.classList.remove("pop"),200);
-    }
   }
 }
 
@@ -215,56 +220,43 @@ function checkGuess(){
   let rowResult=[];
 
   for(let i=0;i<cols;i++){
-    setTimeout(()=>{
-      const tile=row.children[i];
-      tile.classList.add("flip");
+    const tile=row.children[i];
+    let key=document.getElementById("key-"+guess[i]);
 
-      setTimeout(()=>{
-        let key=document.getElementById("key-"+guess[i]);
-
-        if(guess[i]===word[i]){
-          tile.classList.add("correct");
-          key.style.background="green";
-          tempWord[i]=null;
-          rowResult.push("🟩");
-        }
-        else{
-          const idx=tempWord.indexOf(guess[i]);
-          if(idx!==-1){
-            tile.classList.add("present");
-            if(key.style.background!=="green")
-              key.style.background="#c9b458";
-            tempWord[idx]=null;
-            rowResult.push("🟨");
-          }
-          else{
-            tile.classList.add("absent");
-            key.style.background="#3a3a3c";
-            rowResult.push("⬛");
-          }
-        }
-      },250);
-
-    },i*300);
+    if(guess[i]===word[i]){
+      tile.classList.add("correct");
+      key.style.background="green";
+      tempWord[i]=null;
+      rowResult.push("🟩");
+    } else {
+      const idx=tempWord.indexOf(guess[i]);
+      if(idx!==-1){
+        tile.classList.add("present");
+        key.style.background="#c9b458";
+        tempWord[idx]=null;
+        rowResult.push("🟨");
+      } else {
+        tile.classList.add("absent");
+        key.style.background="#3a3a3c";
+        rowResult.push("⬛");
+      }
+    }
   }
 
-  setTimeout(()=>{
-    results.push(rowResult.join(""));
+  results.push(rowResult.join(""));
 
-    if(guess===word){
-      document.getElementById("shareBtn").style.display="block";
-      alert("🎉 You win!");
-      return;
-    }
+  if(guess===word){
+    gameWon = true;
+    document.getElementById("shareBtn").style.display="block";
+    return;
+  }
 
-    currentRow++;
-    currentGuess="";
+  currentRow++;
+  currentGuess="";
 
-    if(currentRow===rows){
-      document.getElementById("shareBtn").style.display="block";
-      alert(`Word was: ${word}`);
-    }
-  },cols*300+200);
+  if(currentRow===rows){
+    document.getElementById("shareBtn").style.display="block";
+  }
 }
 
 // ===== SHAKE =====
@@ -275,86 +267,73 @@ function shake(row){
 
 // ===== SHARE =====
 function shareResult() {
-let win = gameWon;
-let text = "";
+  let text = "";
 
-if (win) {
-let tries = results.findIndex(r => r === "🟩".repeat(word.length)) + 1;
-text += `Wordle guessed in ${tries}/6!\n\n`;
-} else {
-text += `Wordle\n\n`;
+  if (gameWon) {
+    let tries = results.findIndex(r => r === "🟩".repeat(word.length)) + 1;
+    text += `Wordle guessed in ${tries}/6!\n\n`;
+  } else {
+    text += `Wordle\n\n`;
+  }
+
+  results.forEach(r => text += r + "\n");
+
+  if (!gameWon) {
+    text += "\n😅 Tough one today!\n";
+  }
+
+  text += `\nCan you do better?\nTry here ${window.location.href}`;
+
+  copyToClipboard(text);
 }
 
-results.forEach(r => text += r + "\n");
-
-if (!win) {
-text += "\n😅 Tough one today!\n";
-}
-
-text += `\nCan you do better?\nTry here ${window.location.href}`;
-
-copyToClipboard(text);
-}
-
-// MASTER COPY FUNCTION
+// ===== COPY =====
 function copyToClipboard(text) {
-// Try modern API
-if (navigator.clipboard && window.isSecureContext) {
-navigator.clipboard.writeText(text).then(() => {
-showToast("Copied! Share it 🚀");
-}).catch(() => {
-fallbackCopy(text);
-});
-} else {
-fallbackCopy(text);
-}
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast("Copied! Share it 🚀");
+    }).catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
 }
 
-// Fallback (always works)
 function fallbackCopy(text) {
-const textarea = document.createElement("textarea");
-textarea.value = text;
-textarea.style.position = "fixed"; // prevent scrolling
-textarea.style.opacity = "0";
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
 
-document.body.appendChild(textarea);
-textarea.focus();
-textarea.select();
+  document.body.appendChild(textarea);
+  textarea.select();
 
-try {
-document.execCommand("copy");
-showToast("Copied! Share it 🚀");
-} catch (err) {
-manualCopyPrompt(text);
+  try {
+    document.execCommand("copy");
+    showToast("Copied! Share it 🚀");
+  } catch {
+    prompt("Copy manually:", text);
+  }
+
+  document.body.removeChild(textarea);
 }
 
-document.body.removeChild(textarea);
-}
-
-// LAST fallback (user copy)
-function manualCopyPrompt(text) {
-prompt("Copy your result manually:", text);
-}
-
+// ===== TOAST =====
 function showToast(msg) {
-const toast = document.createElement("div");
-toast.innerText = msg;
-toast.style.position = "fixed";
-toast.style.bottom = "20px";
-toast.style.left = "50%";
-toast.style.transform = "translateX(-50%)";
-toast.style.background = "#333";
-toast.style.color = "white";
-toast.style.padding = "10px 20px";
-toast.style.borderRadius = "5px";
-toast.style.zIndex = "1000";
+  const toast = document.createElement("div");
+  toast.innerText = msg;
+  toast.style.position = "fixed";
+  toast.style.bottom = "20px";
+  toast.style.left = "50%";
+  toast.style.transform = "translateX(-50%)";
+  toast.style.background = "#333";
+  toast.style.color = "white";
+  toast.style.padding = "10px 20px";
+  toast.style.borderRadius = "5px";
+  toast.style.zIndex = "1000";
 
-document.body.appendChild(toast);
-
-setTimeout(() => toast.remove(), 2000);
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
 }
-
-
 </script>
 
 </body>
