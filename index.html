@@ -285,35 +285,57 @@ text += `Wordle guessed in ${tries}/6!\n\n`;
 text += `Wordle\n\n`;
 }
 
-// Grid
 results.forEach(r => text += r + "\n");
 
 if (!win) {
 text += "\n😅 Tough one today!\n";
 }
 
-// Footer
 text += `\nCan you do better?\nTry here ${window.location.href}`;
 
-// Copy
+copyToClipboard(text);
+}
+
+// MASTER COPY FUNCTION
+function copyToClipboard(text) {
+// Try modern API
+if (navigator.clipboard && window.isSecureContext) {
 navigator.clipboard.writeText(text).then(() => {
 showToast("Copied! Share it 🚀");
 }).catch(() => {
 fallbackCopy(text);
 });
+} else {
+fallbackCopy(text);
+}
 }
 
-// Fallback method (works everywhere)
+// Fallback (always works)
 function fallbackCopy(text) {
 const textarea = document.createElement("textarea");
 textarea.value = text;
-document.body.appendChild(textarea);
-textarea.select();
-document.execCommand("copy");
-document.body.removeChild(textarea);
+textarea.style.position = "fixed"; // prevent scrolling
+textarea.style.opacity = "0";
 
-showToast("Copied! Share it in Teams 🚀");
+document.body.appendChild(textarea);
+textarea.focus();
+textarea.select();
+
+try {
+document.execCommand("copy");
+showToast("Copied! Share it 🚀");
+} catch (err) {
+manualCopyPrompt(text);
 }
+
+document.body.removeChild(textarea);
+}
+
+// LAST fallback (user copy)
+function manualCopyPrompt(text) {
+prompt("Copy your result manually:", text);
+}
+
 function showToast(msg) {
 const toast = document.createElement("div");
 toast.innerText = msg;
