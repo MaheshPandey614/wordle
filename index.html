@@ -101,7 +101,14 @@ fetch("words.txt")
 
 // ===== SETUP =====
 const params = new URLSearchParams(window.location.search);
-const word = (params.get("w") || "apple").toLowerCase();
+let encoded = params.get("w") || "";
+let word = "";
+
+try {
+  word = atob(encoded).toLowerCase();
+} catch {
+  word = "apple"; // fallback
+}
 
 const rows = 6;
 const cols = word.length;
