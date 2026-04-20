@@ -274,13 +274,32 @@ function shake(row){
 }
 
 // ===== SHARE =====
-function shareResult(){
-  let text="Wordle Result\n\n";
-  results.forEach(r=>text+=r+"\n");
+function shareResult() {
+let tries = results.length;
 
-  navigator.clipboard.writeText(text);
-  alert("Copied to clipboard!");
+// Check if any row is fully correct
+let win = results.some(r => r.split("").every(c => c === "🟩"));
+
+// Header
+let text = `🎯 Wordle ${win ? tries : "X"}/6\n\n`;
+
+// Grid
+results.forEach(r => text += r + "\n");
+
+// Add message for fail
+if (!win) {
+text += "\n😅 Tough one today!\n";
 }
+
+// Add link (same game)
+text += `\nPlay here:\n${window.location.href}`;
+
+// Copy to clipboard
+navigator.clipboard.writeText(text);
+
+showToast("Copied! Share it in Teams 🚀");
+}
+
 </script>
 
 </body>
