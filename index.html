@@ -275,23 +275,29 @@ function shake(row){
 
 // ===== SHARE =====
 function shareResult() {
-let tries = results.length;
+let win = gameWon;
+let text = "";
 
-let win = results.some(r => r.split("").every(c => c === "🟩"));
+if (win) {
+let tries = results.findIndex(r => r === "🟩".repeat(word.length)) + 1;
+text += `Wordle guessed in ${tries}/6!\n\n`;
+} else {
+text += `Wordle\n\n`;
+}
 
-let text = `🎯 Wordle ${win ? tries : "X"}/6\n\n`;
-
+// Grid
 results.forEach(r => text += r + "\n");
 
 if (!win) {
 text += "\n😅 Tough one today!\n";
 }
 
-text += `\nPlay here:\n${window.location.href}`;
+// Footer
+text += `\nCan you do better?\nTry here ${window.location.href}`;
 
-// Try modern clipboard API
+// Copy
 navigator.clipboard.writeText(text).then(() => {
-showToast("Copied! Share it in Teams 🚀");
+showToast("Copied! Share it 🚀");
 }).catch(() => {
 fallbackCopy(text);
 });
