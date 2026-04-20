@@ -2,113 +2,82 @@
 
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wordle</title>
 
 <style>
-  :root {
-    --bg: #121213;
-    --tile: #3a3a3c;
-    --border: #3a3a3c;
-    --green: #6aaa64;
-    --yellow: #c9b458;
-    --gray: #3a3a3c;
-    --text: #ffffff;
-  }
+:root {
+  --bg: #121213;
+  --green: #6aaa64;
+  --yellow: #c9b458;
+  --gray: #3a3a3c;
+}
 
-  body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
+body {
+  margin: 0;
+  font-family: Arial;
+  background: var(--bg);
+  color: white;
+  text-align: center;
+}
 
-  h1 {
-    margin: 20px 0;
-  }
+#board { margin-top: 20px; display: grid; gap: 5px; justify-content: center; }
+.row { display: grid; gap: 5px; }
 
-  #board {
-    display: grid;
-    gap: 5px;
-    margin: 20px 0;
-  }
+.tile {
+  width: 50px; height: 50px;
+  border: 2px solid #3a3a3c;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; font-weight: bold;
+}
 
-  .row {
-    display: grid;
-    gap: 5px;
-  }
+.correct { background: var(--green); }
+.present { background: var(--yellow); }
+.absent { background: var(--gray); }
 
-  .tile {
-    width: 50px;
-    height: 50px;
-    border: 2px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: bold;
-    text-transform: uppercase;
-  }
+#keyboard { margin-top: 20px; }
+.key-row { display: flex; justify-content: center; gap: 5px; margin-bottom: 5px; }
+.key {
+  padding: 10px;
+  border: none;
+  background: #818384;
+  color: white;
+  cursor: pointer;
+}
+.wide { width: 60px; }
 
-  .correct { background: var(--green); border: none; }
-  .present { background: var(--yellow); border: none; }
-  .absent  { background: var(--gray); border: none; }
+/* Animations */
+@keyframes flip {
+  0% { transform: rotateX(0); }
+  50% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0); }
+}
+.tile.flip { animation: flip 0.5s; }
 
-  #keyboard {
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.tile.pop { animation: pop 0.2s; }
 
-  .key-row {
-    display: flex;
-    justify-content: center;
-    gap: 5px;
-  }
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+}
+.row.shake { animation: shake 0.3s; }
 
-  button.key {
-    padding: 10px;
-    min-width: 30px;
-    border: none;
-    background: #818384;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-  }
-
-  button.wide { min-width: 60px; }
-
-  /* Animations */
-  @keyframes flip {
-    0% { transform: rotateX(0); }
-    50% { transform: rotateX(90deg); }
-    100% { transform: rotateX(0); }
-  }
-
-  .tile.flip { animation: flip 0.5s ease; }
-
-  @keyframes pop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
-  }
-
-  .tile.pop { animation: pop 0.2s ease; }
-
-  @keyframes shake {
-    0% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    50% { transform: translateX(5px); }
-    75% { transform: translateX(-5px); }
-    100% { transform: translateX(0); }
-  }
-
-  .row.shake { animation: shake 0.3s; }
+#shareBtn {
+  margin-top: 15px;
+  padding: 10px;
+  background: green;
+  color: white;
+  border: none;
+  display: none;
+}
 </style>
 
 </head>
@@ -118,17 +87,19 @@
 <h1>WORDLE</h1>
 <div id="board"></div>
 <div id="keyboard"></div>
+<button id="shareBtn" onclick="shareResult()">📤 Share Result</button>
 
 <script>
-// ===== WORD LIST (extend this anytime) =====
-const validWords = [
-  "apple","actor","about","abide","above","adopt","adult",
-  "after","again","angle","anger","award","aware","basic",
-  "beach","begin","birth","black","block","blood","board",
-  "brain","bread","break","bring","broad","brown","build"
-];
+// ===== LOAD WORD LIST =====
+let validWords = [];
 
-// ===== GAME SETUP =====
+fetch("words.txt")
+  .then(res => res.text())
+  .then(text => {
+    validWords = text.split("\n").map(w => w.trim().toLowerCase());
+  });
+
+// ===== SETUP =====
 const params = new URLSearchParams(window.location.search);
 const word = (params.get("w") || "apple").toLowerCase();
 
@@ -137,11 +108,12 @@ const cols = word.length;
 
 let currentRow = 0;
 let currentGuess = "";
+let results = [];
 
 const board = document.getElementById("board");
 board.style.gridTemplateRows = `repeat(${rows}, auto)`;
 
-// Create board
+// Build board
 for (let r = 0; r < rows; r++) {
   const row = document.createElement("div");
   row.className = "row";
@@ -160,128 +132,147 @@ for (let r = 0; r < rows; r++) {
 const keys = ["qwertyuiop","asdfghjkl","zxcvbnm"];
 const keyboard = document.getElementById("keyboard");
 
-keys.forEach((rowKeys, i) => {
+keys.forEach((r,i)=>{
   const row = document.createElement("div");
-  row.className = "key-row";
+  row.className="key-row";
 
-  if (i === 2) row.appendChild(createKey("Enter", true));
+  if(i===2) row.appendChild(createKey("Enter",true));
 
-  rowKeys.split("").forEach(k => row.appendChild(createKey(k)));
+  r.split("").forEach(k=>row.appendChild(createKey(k)));
 
-  if (i === 2) row.appendChild(createKey("⌫", true));
+  if(i===2) row.appendChild(createKey("⌫",true));
 
   keyboard.appendChild(row);
 });
 
-function createKey(letter, wide=false) {
-  const btn = document.createElement("button");
-  btn.textContent = letter;
-  btn.className = "key" + (wide ? " wide" : "");
-  btn.onclick = () => handleKey(letter);
+function createKey(letter,wide=false){
+  const btn=document.createElement("button");
+  btn.textContent=letter;
+  btn.className="key"+(wide?" wide":"");
+  btn.id="key-"+letter;
+  btn.onclick=()=>handleKey(letter);
   return btn;
 }
 
 // ===== INPUT =====
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") handleKey("Enter");
-  else if (e.key === "Backspace") handleKey("⌫");
-  else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key);
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter") handleKey("Enter");
+  else if(e.key==="Backspace") handleKey("⌫");
+  else if(/^[a-zA-Z]$/.test(e.key)) handleKey(e.key);
 });
 
-function handleKey(key) {
-  if (currentRow >= rows) return;
+function handleKey(key){
+  if(currentRow>=rows) return;
 
-  if (key === "Enter") {
-    checkGuess();
-    return;
-  }
-
-  if (key === "⌫") {
-    currentGuess = currentGuess.slice(0, -1);
-  } else {
-    if (currentGuess.length < cols) {
-      currentGuess += key;
-    }
-  }
+  if(key==="Enter"){ checkGuess(); return; }
+  if(key==="⌫"){ currentGuess=currentGuess.slice(0,-1); }
+  else if(currentGuess.length<cols){ currentGuess+=key; }
 
   updateBoard();
 }
 
 // ===== UPDATE BOARD =====
-function updateBoard() {
-  const row = board.children[currentRow];
+function updateBoard(){
+  const row=board.children[currentRow];
 
-  for (let i = 0; i < cols; i++) {
-    const tile = row.children[i];
-    tile.textContent = currentGuess[i] || "";
+  for(let i=0;i<cols;i++){
+    const tile=row.children[i];
+    tile.textContent=currentGuess[i]||"";
 
-    if (currentGuess[i]) {
+    if(currentGuess[i]){
       tile.classList.add("pop");
-      setTimeout(() => tile.classList.remove("pop"), 200);
+      setTimeout(()=>tile.classList.remove("pop"),200);
     }
   }
 }
 
-// ===== CHECK GUESS =====
-function checkGuess() {
-  const row = board.children[currentRow];
-  const guess = currentGuess;
+// ===== CHECK =====
+function checkGuess(){
+  const row=board.children[currentRow];
+  const guess=currentGuess;
 
-  if (guess.length !== cols) {
-    shake(row);
+  if(validWords.length===0){
+    alert("Dictionary loading...");
     return;
   }
 
-  if (!validWords.includes(guess)) {
+  if(guess.length!==cols){ shake(row); return; }
+
+  if(!validWords.includes(guess)){
     shake(row);
-    alert("❌ Not a valid English word");
+    alert("Not a valid word");
     return;
   }
 
-  let tempWord = word.split("");
+  let tempWord=word.split("");
+  let rowResult=[];
 
-  for (let i = 0; i < cols; i++) {
-    setTimeout(() => {
-      const tile = row.children[i];
+  for(let i=0;i<cols;i++){
+    setTimeout(()=>{
+      const tile=row.children[i];
       tile.classList.add("flip");
 
-      setTimeout(() => {
-        if (guess[i] === word[i]) {
+      setTimeout(()=>{
+        let key=document.getElementById("key-"+guess[i]);
+
+        if(guess[i]===word[i]){
           tile.classList.add("correct");
-          tempWord[i] = null;
-        } else {
-          const index = tempWord.indexOf(guess[i]);
-          if (index !== -1) {
+          key.style.background="green";
+          tempWord[i]=null;
+          rowResult.push("🟩");
+        }
+        else{
+          const idx=tempWord.indexOf(guess[i]);
+          if(idx!==-1){
             tile.classList.add("present");
-            tempWord[index] = null;
-          } else {
+            if(key.style.background!=="green")
+              key.style.background="#c9b458";
+            tempWord[idx]=null;
+            rowResult.push("🟨");
+          }
+          else{
             tile.classList.add("absent");
+            key.style.background="#3a3a3c";
+            rowResult.push("⬛");
           }
         }
-      }, 250);
+      },250);
 
-    }, i * 300);
+    },i*300);
   }
 
-  setTimeout(() => {
-    if (guess === word) {
+  setTimeout(()=>{
+    results.push(rowResult.join(""));
+
+    if(guess===word){
+      document.getElementById("shareBtn").style.display="block";
       alert("🎉 You win!");
       return;
     }
 
     currentRow++;
-    currentGuess = "";
+    currentGuess="";
 
-    if (currentRow === rows) {
-      alert(`❌ Word was: ${word}`);
+    if(currentRow===rows){
+      document.getElementById("shareBtn").style.display="block";
+      alert(`Word was: ${word}`);
     }
-  }, cols * 300 + 200);
+  },cols*300+200);
 }
 
 // ===== SHAKE =====
-function shake(row) {
+function shake(row){
   row.classList.add("shake");
-  setTimeout(() => row.classList.remove("shake"), 300);
+  setTimeout(()=>row.classList.remove("shake"),300);
+}
+
+// ===== SHARE =====
+function shareResult(){
+  let text="Wordle Result\n\n";
+  results.forEach(r=>text+=r+"\n");
+
+  navigator.clipboard.writeText(text);
+  alert("Copied to clipboard!");
 }
 </script>
 
