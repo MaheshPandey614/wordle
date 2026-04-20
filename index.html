@@ -277,28 +277,55 @@ function shake(row){
 function shareResult() {
 let tries = results.length;
 
-// Check if any row is fully correct
 let win = results.some(r => r.split("").every(c => c === "🟩"));
 
-// Header
 let text = `🎯 Wordle ${win ? tries : "X"}/6\n\n`;
 
-// Grid
 results.forEach(r => text += r + "\n");
 
-// Add message for fail
 if (!win) {
 text += "\n😅 Tough one today!\n";
 }
 
-// Add link (same game)
 text += `\nPlay here:\n${window.location.href}`;
 
-// Copy to clipboard
-navigator.clipboard.writeText(text);
+// Try modern clipboard API
+navigator.clipboard.writeText(text).then(() => {
+showToast("Copied! Share it in Teams 🚀");
+}).catch(() => {
+fallbackCopy(text);
+});
+}
+
+// Fallback method (works everywhere)
+function fallbackCopy(text) {
+const textarea = document.createElement("textarea");
+textarea.value = text;
+document.body.appendChild(textarea);
+textarea.select();
+document.execCommand("copy");
+document.body.removeChild(textarea);
 
 showToast("Copied! Share it in Teams 🚀");
 }
+function showToast(msg) {
+const toast = document.createElement("div");
+toast.innerText = msg;
+toast.style.position = "fixed";
+toast.style.bottom = "20px";
+toast.style.left = "50%";
+toast.style.transform = "translateX(-50%)";
+toast.style.background = "#333";
+toast.style.color = "white";
+toast.style.padding = "10px 20px";
+toast.style.borderRadius = "5px";
+toast.style.zIndex = "1000";
+
+document.body.appendChild(toast);
+
+setTimeout(() => toast.remove(), 2000);
+}
+
 
 </script>
 
