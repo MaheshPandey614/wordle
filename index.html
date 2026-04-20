@@ -261,15 +261,15 @@ function shareResult(){
 
   if(gameWon){
     let tries = results.findIndex(r => r === "🟩".repeat(word.length)) + 1;
-    text += `Wordle ${tries}/6 🎯\n\n`;
+    text += `Wordle guessed in ${tries}/6 🎯. Can you do better?\n\n`;
   } else {
-    text += `Wordle\n\n`;
+    text += `Wordle attempted!\n\n`;
   }
 
   results.forEach(r => text += r + "\n");
 
   if(!gameWon){
-    text += "\n😅 Tough one today!\n";
+    text += "\n😅 Tough one today! Can you do better?\n";
   }
 
   text += `\nPlay here:\n${window.location.href}`;
