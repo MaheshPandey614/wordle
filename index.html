@@ -10,7 +10,6 @@
   :root {
     --bg: #121213;
     --tile: #3a3a3c;
-    --empty: #121213;
     --border: #3a3a3c;
     --green: #6aaa64;
     --yellow: #c9b458;
@@ -83,6 +82,33 @@
   }
 
   button.wide { min-width: 60px; }
+
+  /* Animations */
+  @keyframes flip {
+    0% { transform: rotateX(0); }
+    50% { transform: rotateX(90deg); }
+    100% { transform: rotateX(0); }
+  }
+
+  .tile.flip { animation: flip 0.5s ease; }
+
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  .tile.pop { animation: pop 0.2s ease; }
+
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+    100% { transform: translateX(0); }
+  }
+
+  .row.shake { animation: shake 0.3s; }
 </style>
 
 </head>
@@ -94,6 +120,15 @@
 <div id="keyboard"></div>
 
 <script>
+// ===== WORD LIST (extend this anytime) =====
+const validWords = [
+  "apple","actor","about","abide","above","adopt","adult",
+  "after","again","angle","anger","award","aware","basic",
+  "beach","begin","birth","black","block","blood","board",
+  "brain","bread","break","bring","broad","brown","build"
+];
+
+// ===== GAME SETUP =====
 const params = new URLSearchParams(window.location.search);
 const word = (params.get("w") || "apple").toLowerCase();
 
@@ -121,7 +156,7 @@ for (let r = 0; r < rows; r++) {
   board.appendChild(row);
 }
 
-// Keyboard
+// ===== KEYBOARD =====
 const keys = ["qwertyuiop","asdfghjkl","zxcvbnm"];
 const keyboard = document.getElementById("keyboard");
 
@@ -129,17 +164,11 @@ keys.forEach((rowKeys, i) => {
   const row = document.createElement("div");
   row.className = "key-row";
 
-  if (i === 2) {
-    row.appendChild(createKey("Enter", true));
-  }
+  if (i === 2) row.appendChild(createKey("Enter", true));
 
-  rowKeys.split("").forEach(k => {
-    row.appendChild(createKey(k));
-  });
+  rowKeys.split("").forEach(k => row.appendChild(createKey(k)));
 
-  if (i === 2) {
-    row.appendChild(createKey("⌫", true));
-  }
+  if (i === 2) row.appendChild(createKey("⌫", true));
 
   keyboard.appendChild(row);
 });
@@ -152,7 +181,7 @@ function createKey(letter, wide=false) {
   return btn;
 }
 
-// Input handling
+// ===== INPUT =====
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter") handleKey("Enter");
   else if (e.key === "Backspace") handleKey("⌫");
@@ -163,9 +192,11 @@ function handleKey(key) {
   if (currentRow >= rows) return;
 
   if (key === "Enter") {
-    if (currentGuess.length !== cols) return;
     checkGuess();
-  } else if (key === "⌫") {
+    return;
+  }
+
+  if (key === "⌫") {
     currentGuess = currentGuess.slice(0, -1);
   } else {
     if (currentGuess.length < cols) {
@@ -176,52 +207,81 @@ function handleKey(key) {
   updateBoard();
 }
 
+// ===== UPDATE BOARD =====
 function updateBoard() {
   const row = board.children[currentRow];
 
   for (let i = 0; i < cols; i++) {
-    row.children[i].textContent = currentGuess[i] || "";
+    const tile = row.children[i];
+    tile.textContent = currentGuess[i] || "";
+
+    if (currentGuess[i]) {
+      tile.classList.add("pop");
+      setTimeout(() => tile.classList.remove("pop"), 200);
+    }
   }
 }
 
+// ===== CHECK GUESS =====
 function checkGuess() {
   const row = board.children[currentRow];
   const guess = currentGuess;
 
-  let tempWord = word.split("");
-
-  // First pass (correct)
-  for (let i = 0; i < cols; i++) {
-    if (guess[i] === word[i]) {
-      row.children[i].classList.add("correct");
-      tempWord[i] = null;
-    }
-  }
-
-  // Second pass (present)
-  for (let i = 0; i < cols; i++) {
-    if (!row.children[i].classList.contains("correct")) {
-      const index = tempWord.indexOf(guess[i]);
-      if (index !== -1) {
-        row.children[i].classList.add("present");
-        tempWord[index] = null;
-      } else {
-        row.children[i].classList.add("absent");
-      }
-    }
-  }
-
-  if (guess === word) {
-    setTimeout(() => alert("🎉 You win!"), 200);
+  if (guess.length !== cols) {
+    shake(row);
     return;
   }
 
-  currentRow++;
-  currentGuess = "";
-
-  if (currentRow === rows) {
-    setTimeout(() => alert(`❌ Word was: ${word}`), 200);
+  if (!validWords.includes(guess)) {
+    shake(row);
+    alert("❌ Not a valid English word");
+    return;
   }
+
+  let tempWord = word.split("");
+
+  for (let i = 0; i < cols; i++) {
+    setTimeout(() => {
+      const tile = row.children[i];
+      tile.classList.add("flip");
+
+      setTimeout(() => {
+        if (guess[i] === word[i]) {
+          tile.classList.add("correct");
+          tempWord[i] = null;
+        } else {
+          const index = tempWord.indexOf(guess[i]);
+          if (index !== -1) {
+            tile.classList.add("present");
+            tempWord[index] = null;
+          } else {
+            tile.classList.add("absent");
+          }
+        }
+      }, 250);
+
+    }, i * 300);
+  }
+
+  setTimeout(() => {
+    if (guess === word) {
+      alert("🎉 You win!");
+      return;
+    }
+
+    currentRow++;
+    currentGuess = "";
+
+    if (currentRow === rows) {
+      alert(`❌ Word was: ${word}`);
+    }
+  }, cols * 300 + 200);
+}
+
+// ===== SHAKE =====
+function shake(row) {
+  row.classList.add("shake");
+  setTimeout(() => row.classList.remove("shake"), 300);
 }
 </script>
 
