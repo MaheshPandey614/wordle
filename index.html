@@ -22,7 +22,6 @@ body {
   text-align: center;
 }
 
-/* Game container keeps board + share button aligned */
 #gameContainer {
   display: flex;
   flex-direction: column;
@@ -46,15 +45,24 @@ body {
   justify-content: center;
   font-size: 24px;
   font-weight: bold;
+  text-transform: uppercase;
 }
 
 .correct { background: var(--green); }
 .present { background: var(--yellow); }
 .absent { background: var(--gray); }
 
-/* Keyboard */
+/* Animations */
+@keyframes flip {
+  0% { transform: rotateX(0); }
+  50% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0); }
+}
+.tile.flip { animation: flip 0.5s ease; }
+
 #keyboard { margin-top: 20px; }
 .key-row { display: flex; justify-content: center; gap: 5px; }
+
 .key {
   padding: 10px;
   border: none;
@@ -64,7 +72,7 @@ body {
 }
 .wide { width: 60px; }
 
-/* Share button (hidden until game ends) */
+/* Share button */
 #shareBtn {
   margin-top: 15px;
   padding: 10px 20px;
@@ -91,33 +99,19 @@ body {
 <div id="keyboard"></div>
 
 <script>
-// ============================
-// LOAD DICTIONARY
-// ============================
+// ===== LOAD WORD LIST =====
 let validWords = [];
-
 fetch("words.txt")
   .then(res => res.text())
   .then(text => {
     validWords = text.split("\n").map(w => w.trim().toLowerCase());
   });
 
-// ============================
-// GET WORD FROM URL (Base64)
-// ============================
+// ===== GET WORD =====
 const params = new URLSearchParams(window.location.search);
-let encoded = params.get("w") || "";
-let word = "";
+let word = atob(params.get("w") || "YXBwbGU=").toLowerCase();
 
-try {
-  word = atob(encoded).toLowerCase();
-} catch {
-  word = "apple";
-}
-
-// ============================
-// GAME STATE
-// ============================
+// ===== GAME STATE =====
 const rows = 6;
 const cols = word.length;
 
@@ -126,9 +120,7 @@ let currentGuess = "";
 let results = [];
 let gameWon = false;
 
-// ============================
-// BUILD BOARD
-// ============================
+// ===== BUILD BOARD =====
 const board = document.getElementById("board");
 
 for (let r = 0; r < rows; r++) {
@@ -145,9 +137,7 @@ for (let r = 0; r < rows; r++) {
   board.appendChild(row);
 }
 
-// ============================
-// KEYBOARD
-// ============================
+// ===== KEYBOARD =====
 const keys = ["qwertyuiop","asdfghjkl","zxcvbnm"];
 const keyboard = document.getElementById("keyboard");
 
@@ -168,13 +158,12 @@ function createKey(letter,wide=false){
   const btn=document.createElement("button");
   btn.textContent=letter;
   btn.className="key"+(wide?" wide":"");
+  btn.id="key-"+letter;
   btn.onclick=()=>handleKey(letter);
   return btn;
 }
 
-// ============================
-// INPUT HANDLING
-// ============================
+// ===== INPUT =====
 document.addEventListener("keydown",e=>{
   if(e.key==="Enter") handleKey("Enter");
   else if(e.key==="Backspace") handleKey("⌫");
@@ -198,9 +187,7 @@ function updateBoard(){
   }
 }
 
-// ============================
-// GAME LOGIC
-// ============================
+// ===== CHECK GUESS =====
 function checkGuess(){
   const row=board.children[currentRow];
   const guess=currentGuess;
@@ -212,58 +199,64 @@ function checkGuess(){
   let rowResult=[];
 
   for(let i=0;i<cols;i++){
-    const tile=row.children[i];
+    setTimeout(()=>{
+      const tile=row.children[i];
+      tile.classList.add("flip");
 
-    if(guess[i]===word[i]){
-      tile.classList.add("correct");
-      tempWord[i]=null;
-      rowResult.push("🟩");
-    } else {
-      const idx=tempWord.indexOf(guess[i]);
-      if(idx!==-1){
-        tile.classList.add("present");
-        tempWord[idx]=null;
-        rowResult.push("🟨");
-      } else {
-        tile.classList.add("absent");
-        rowResult.push("⬛");
-      }
+      setTimeout(()=>{
+        let key=document.getElementById("key-"+guess[i]);
+
+        if(guess[i]===word[i]){
+          tile.classList.add("correct");
+          key.style.background="green";
+          tempWord[i]=null;
+          rowResult.push("🟩");
+        } else {
+          const idx=tempWord.indexOf(guess[i]);
+          if(idx!==-1){
+            tile.classList.add("present");
+            if(key.style.background!=="green")
+              key.style.background="#c9b458";
+            tempWord[idx]=null;
+            rowResult.push("🟨");
+          } else {
+            tile.classList.add("absent");
+            key.style.background="#3a3a3c";
+            rowResult.push("⬛");
+          }
+        }
+      },250);
+
+    },i*300);
+  }
+
+  setTimeout(()=>{
+    results.push(rowResult.join(""));
+
+    if(guess===word){
+      gameWon = true;
+      alert(`🎉 You won in ${results.length}/6!`);
+      showShare();
+      return;
     }
-  }
 
-  results.push(rowResult.join(""));
+    currentRow++;
+    currentGuess="";
 
-  // WIN
-  if(guess===word){
-    gameWon = true;
-    let tries = results.length;
-    alert(`🎉 You won in ${tries}/6!`);
-    showShare();
-    return;
-  }
-
-  currentRow++;
-  currentGuess="";
-
-  // LOSE
-  if(currentRow===rows){
-    alert(`😅 You lost! Word was "${word}"`);
-    showShare();
-  }
+    if(currentRow===rows){
+      alert(`😅 You lost! Word was "${word}"`);
+      showShare();
+    }
+  },cols*300+200);
 }
 
-// ============================
-// SHOW SHARE BUTTON
-// ============================
+// ===== SHARE BUTTON =====
 function showShare(){
   document.getElementById("shareBtn").style.display="block";
 }
 
-// ============================
-// SHARE RESULT
-// ============================
+// ===== SHARE RESULT =====
 function shareResult(){
-
   let text = "";
 
   if(gameWon){
@@ -279,15 +272,12 @@ function shareResult(){
     text += "\n😅 Tough one today!\n";
   }
 
-  // IMPORTANT: link on separate line → clickable in Teams
   text += `\nPlay here:\n${window.location.href}`;
 
   copy(text);
 }
 
-// ============================
-// COPY (RELIABLE)
-// ============================
+// ===== COPY =====
 function copy(text){
   const textarea = document.createElement("textarea");
   textarea.value = text;
@@ -296,7 +286,7 @@ function copy(text){
 
   try {
     document.execCommand("copy");
-    alert("Copied! Paste it in Teams 🚀");
+    alert("Copied! Paste in Teams 🚀");
   } catch {
     prompt("Copy manually:", text);
   }
