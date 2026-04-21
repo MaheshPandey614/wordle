@@ -8,19 +8,37 @@
 
 <style>
 :root {
-  --bg: #121213;
-  --green: #6aaa64;
-  --yellow: #c9b458;
-  --gray: #3a3a3c;
+--bg: #f5f7fa;
+--tile-bg: #ffffff;
+--border: #d0d5dd;
+
+--green: #2e7d32;
+--yellow: #edc948;
+--gray: #c7c9cc;
+
+--header-blue: #002664; /* NSW Gov blue */
+}
+h1 {
+  background: var(--header-blue);
+  color: white;
+  margin: 0;
+  padding: 20px;
+  font-size: 28px;
 }
 
-body {
-  margin: 0;
-  font-family: Arial;
-  background: var(--bg);
-  color: white;
-  text-align: center;
+h2 {
+  margin-top: 10px;
+  font-weight: normal;
+  color: #475467;
 }
+body {
+margin: 0;
+font-family: "Segoe UI", Arial, sans-serif;
+background: var(--bg);
+color: #1f2937;
+text-align: center;
+}
+
 
 #gameContainer {
   display: flex;
@@ -37,16 +55,17 @@ body {
 .row { display: grid; gap: 5px; }
 
 .tile {
-  width: 50px;
-  height: 50px;
-  border: 2px solid #3a3a3c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-  font-weight: bold;
-  text-transform: uppercase;
+width: 50px;
+height: 50px;
+border: 2px solid var(--border);
+background: var(--tile-bg);
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 22px;
+font-weight: bold;
 }
+
 
 .correct { background: var(--green); }
 .present { background: var(--yellow); }
@@ -64,25 +83,27 @@ body {
 .key-row { display: flex; justify-content: center; gap: 5px; }
 
 .key {
-  padding: 10px;
-  border: none;
-  background: #818384;
-  color: white;
-  cursor: pointer;
+padding: 10px;
+border: 1px solid var(--border);
+background: #ffffff;
+color: #1f2937;
+cursor: pointer;
 }
+
 .wide { width: 60px; }
 
 /* Share button */
 #shareBtn {
-  margin-top: 15px;
-  padding: 10px 20px;
-  background: #6aaa64;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  display: none;
-  cursor: pointer;
+margin-top: 15px;
+padding: 10px 20px;
+background: var(--header-blue);
+color: white;
+border: none;
+border-radius: 4px;
+display: none;
+cursor: pointer;
 }
+
 </style>
 
 </head>
