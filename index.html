@@ -218,61 +218,40 @@ function checkGuess(){
 
   let tempWord=word.split("");
   let rowResult=[];
-
-  for(let i=0;i<cols;i++){
-    setTimeout(()=>{
-      const tile=row.children[i];
-      tile.classList.add("flip");
-
-      setTimeout(()=>{
-        let key = document.getElementById("key-" + guess[i]);
-
-        if (guess[i] === word[i]) {
-        tile.classList.add("correct");
-        
-        key.classList.remove("present", "absent");
-        key.classList.add("correct");
-        
-        tempWord[i] = null;
-        rowResult.push("🟩");
-        
-        } else {
-        const idx = tempWord.indexOf(guess[i]);
-        
-        if (idx !== -1) {
-        tile.classList.add("present");
-        
-        ```
-        if (!key.classList.contains("correct")) {
-          key.classList.remove("absent");
-          key.classList.add("present");
-        }
-        
-        tempWord[idx] = null;
-        rowResult.push("🟨");
-        ```
-        
-        } else {
-        tile.classList.add("absent");
-        
-        ```
-        if (
-          !key.classList.contains("correct") &&
-          !key.classList.contains("present")
-        ) {
-          key.classList.add("absent");
-        }
-        
-        rowResult.push("⬛");
-        ```
-        
-        }
-      }
-
-      },250);
-
-    },i*300);
+  for (let i = 0; i < cols; i++) {
+  
+  let resultSymbol;
+  
+  if (guess[i] === word[i]) {
+  resultSymbol = "🟩";
+  } else {
+  const idx = tempWord.indexOf(guess[i]);
+  if (idx !== -1) {
+  resultSymbol = "🟨";
+  tempWord[idx] = null;
+  } else {
+  resultSymbol = "🟥";
   }
+  }
+  
+  // PUSH IMMEDIATELY (no delay)
+  rowResult.push(resultSymbol);
+  
+  // ANIMATION ONLY
+  setTimeout(() => {
+  const tile = row.children[i];
+  tile.classList.add("flip");
+  
+  ```
+  if (resultSymbol === "🟩") tile.classList.add("correct");
+  else if (resultSymbol === "🟨") tile.classList.add("present");
+  else tile.classList.add("absent");
+  ```
+  
+  }, i * 300);
+  }
+
+  
 
   setTimeout(()=>{
     results.push(rowResult.join(""));
